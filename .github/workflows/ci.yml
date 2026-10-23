@@ -58,7 +58,7 @@ jobs:
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
           OPENAI_API_VERSION: ${{ vars.OPENAI_API_VERSION }}
-        run: uv run python evals/run.py
+        run: uv run python -m evals.run
   
   build:
     needs: evals
