@@ -56,6 +56,24 @@ The image is multi-stage, based on `python:3.11-slim`:
 
 LangSmith dataset `agent-platform-tool-routing` (created by `evals/datasets.py`) labels questions as `tool_required` or `no_tool`. `evals/run.py` is meant to run the graph against that dataset, score whether a tool was called, and exit non-zero if the pass rate is under 80%. The invoke call currently passes a set (`{"user", question}`) where the graph expects a user message, so that runner does not execute yet.
 
+### CI (`.github/workflows/ci.yml`)
+
+The `ci` workflow runs on pushes and pull requests to `main`. Jobs run in order: tests, then the eval gate, then an image push. The build job runs only when the ref is `refs/heads/main`.
+
+| Job | What it does |
+| --- | --- |
+| `test` | Postgres 16 service container, `uv sync --all-extras --dev`, then `uv run pytest -q`. |
+| `evals` | Same install, then `uv run python evals/run.py`. |
+| `build` | Assumes an AWS role with OIDC, logs in to ECR in `us-east-1`, and pushes `agentic-admin` tagged with the commit SHA and `latest`. |
+
+Permissions are `contents: read` and `id-token: write` (for the role assumption).
+
+Secrets: `POSTGRES_PASSWORD`, `POSTGRES_DB`, `OPENAI_API_KEY`, `LANGSMITH_API_KEY`, `AWS_ROLE_ARN`.
+
+Repository variables: `LANGSMITH_TRACING`, `LANGSMITH_PROJECT`, `LLM_PROVIDER`, `OPENAI_MODEL`, `OPENAI_API_VERSION`.
+
+The workflow file does not parse yet. On the ECR login step, `id: ecr` is indented under `uses`, and on the push step `env` is indented under `name`. GitHub will reject the file until those keys sit beside `uses` and `name`. The Postgres service option is `--health_retries`; Actions expects `--health-retries`. The test job’s `DATABASE_URL` host is `db`, while the service container is named `postgres`.
+
 ### Package stub
 
 `src/agent_platform/__init__.py` exposes the `agent-platform` console script, which prints a hello line. The running service lives in `app/`, not in that package.
@@ -72,6 +90,7 @@ docker-compose.yml    Postgres 16 and the API
 .dockerignore         build-context exclusions
 pyproject.toml        dependencies (uv)
 uv.lock               locked dependency set used by the image
+.github/workflows/ci.yml   test, eval gate, ECR push
 ```
 
 ## Run

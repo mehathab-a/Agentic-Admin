@@ -1,0 +1,83 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  id_token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPO: agentic-admin
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health_retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@5
+      - run: uv sync --all-extras --dev
+      - name: unit tests
+        env:
+          DATABASE_URL: postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@db:5432/agent
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LANGSMITH_TRACING: ${{ variables.LANGSMITH_TRACING }}
+          LLM_PROVIDER: ${{ variables.LLM_PROVIDER }}
+          OPENAI_MODEL: ${{ variables.OPENAI_MODEL }}
+          OPENAI_API_VERSION: ${{ variables.OPENAI_API_VERSION }}
+        run: uv run pytest -q
+  
+  evals:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@5
+      - run: uv sync --all-extras --dev
+      - name: eval gate
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          LANGSMITH_TRACING: ${{ variables.LANGSMITH_TRACING }}
+          LANGSMITH_PROJECT: ${{ variables.LANGSMITH_PROJECT }}
+          LLM_PROVIDER: ${{ variables.LLM_PROVIDER }}
+          OPENAI_MODEL: ${{ variables.OPENAI_MODEL }}
+          OPENAI_API_VERSION: ${{ variables.OPENAI_API_VERSION }}
+        run: uv run python evals/run.py
+  
+  build:
+    needs: evals
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+          id: ecr
+      - name: build and push app image
+          env:
+            REG: ${{ steps.ecr.outputs.registry }}
+        run : |
+          docker build -t $REG/$ECR_REPO:${{ github.sha }} -t $REG/$ECR_REPO:latest .
+          docker push $REG/$ECR_REPO:${{ github.sha }}
+          docker push $REG/$ECR_REPO:latest
+
+
+        
+
+
