@@ -31,7 +31,21 @@ structlog writes JSON lines with merged context vars, log level, and an ISO time
 
 ### Persistence
 
-`docker-compose.yml` runs Postgres 16 with database `agent`, user `postgres`, password `postgres`, published on port 5432. Thread state is stored in LangGraph’s Postgres checkpointer, keyed by `thread_id`.
+Thread state is stored in LangGraph’s Postgres checkpointer, keyed by `thread_id`.
+
+### Docker
+
+`docker-compose.yml` runs two services:
+
+- **db** — Postgres 16, database `agent`, user `postgres`, password `postgres`, published on port 5432. A `pg_isready` healthcheck runs every 3 seconds, up to 10 times.
+- **api** — built from the local `Dockerfile`, published on port 8000. It loads `.env` and sets `DATABASE_URL` to `postgresql://postgres:postgres@db:5432/agent`. It starts only after `db` is healthy.
+
+The image is multi-stage, based on `python:3.11-slim`:
+
+1. Install `uv`, then `uv export --no-dev --no-emit-project --no-hashes` from `pyproject.toml` and `uv.lock`, and `pip install` those packages into `/install`. `--no-emit-project` drops the local editable package (pip cannot hash it), and `--no-hashes` avoids the hash check that blocked that install.
+2. Copy `/install` into a runtime image, add a non-root user `app` (uid 1000), copy `app/`, and run `uvicorn app.api:app` on `0.0.0.0:8000`.
+
+`.dockerignore` keeps `.venv`, `.env`, `.git`, caches, `tests/`, `evals/`, and `terraform/` out of the build context. The image does not use the `requirements.txt` in the repo root; dependencies come from the lockfile at build time.
 
 ### Tests
 
@@ -49,19 +63,32 @@ LangSmith dataset `agent-platform-tool-routing` (created by `evals/datasets.py`)
 ## Layout
 
 ```
-app/           graph, LLM factory, FastAPI app, logging
-evals/         LangSmith dataset setup and tool-routing eval
-tests/         tool and checkpointer tests
+app/                  graph, LLM factory, FastAPI app, logging
+evals/                LangSmith dataset setup and tool-routing eval
+tests/                tool and checkpointer tests
 src/agent_platform/   console-script stub
-docker-compose.yml    Postgres 16
+Dockerfile            multi-stage API image
+docker-compose.yml    Postgres 16 and the API
+.dockerignore         build-context exclusions
 pyproject.toml        dependencies (uv)
+uv.lock               locked dependency set used by the image
 ```
 
 ## Run
 
+Put model settings in `.env` (`LLM_PROVIDER`, `OPENAI_MODEL`, `OPENAI_API_KEY`). Compose overrides `DATABASE_URL` so the API talks to the `db` service.
+
+```bash
+docker compose up --build
+```
+
+The API is on port 8000 once Postgres is healthy.
+
+To run the API on the host instead, start only the database and point `DATABASE_URL` at localhost:
+
 ```bash
 uv sync
-docker compose up -d
+docker compose up -d db
 export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/agent
 export LLM_PROVIDER=openai
 export OPENAI_MODEL=gpt-4o-mini
