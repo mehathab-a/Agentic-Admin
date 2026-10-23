@@ -1,0 +1,38 @@
+[project]
+name = "agent-platform"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "mehathab-a", email = "mehathab6342@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.146.0",
+    "langchain-anthropic>=1.7.6",
+    "langchain-aws>=1.9.0",
+    "langchain-openai>=1.7.2",
+    "langgraph>=1.2.16",
+    "langgraph-checkpoint-postgres>=3.2.0",
+    "langsmith>=0.14.11",
+    "psycopg[binary-pool]>=3.3.6",
+    "structlog>=26.1.0",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+agent-platform = "agent_platform:main"
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "langsmith>=0.14.11",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]

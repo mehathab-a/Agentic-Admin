@@ -1,0 +1,17 @@
+#env files
+.env
+
+#cursorfiles
+.cursorignore
+
+#pycache
+__pycache__/
+
+#pytest
+.pytest_cache/
+
+#logs
+logs/
+
+#venv
+venv/
