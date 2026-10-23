@@ -68,10 +68,10 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
       - uses: aws-actions/amazon-ecr-login@v2
-          id: ecr
+        id: ecr
       - name: build and push app image
-          env:
-            REG: ${{ steps.ecr.outputs.registry }}
+        env:
+          REG: ${{ steps.ecr.outputs.registry }}
         run : |
           docker build -t $REG/$ECR_REPO:${{ github.sha }} -t $REG/$ECR_REPO:latest .
           docker push $REG/$ECR_REPO:${{ github.sha }}
