@@ -33,10 +33,10 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          LANGSMITH_TRACING: ${{ variables.LANGSMITH_TRACING }}
-          LLM_PROVIDER: ${{ variables.LLM_PROVIDER }}
-          OPENAI_MODEL: ${{ variables.OPENAI_MODEL }}
-          OPENAI_API_VERSION: ${{ variables.OPENAI_API_VERSION }}
+          LANGSMITH_TRACING: ${{ vars.LANGSMITH_TRACING }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          OPENAI_API_VERSION: ${{ vars.OPENAI_API_VERSION }}
         run: uv run pytest -q
   
   evals:
@@ -50,11 +50,11 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
-          LANGSMITH_TRACING: ${{ variables.LANGSMITH_TRACING }}
-          LANGSMITH_PROJECT: ${{ variables.LANGSMITH_PROJECT }}
-          LLM_PROVIDER: ${{ variables.LLM_PROVIDER }}
-          OPENAI_MODEL: ${{ variables.OPENAI_MODEL }}
-          OPENAI_API_VERSION: ${{ variables.OPENAI_API_VERSION }}
+          LANGSMITH_TRACING: ${{ vars.LANGSMITH_TRACING }}
+          LANGSMITH_PROJECT: ${{ vars.LANGSMITH_PROJECT }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          OPENAI_API_VERSION: ${{ vars.OPENAI_API_VERSION }}
         run: uv run python evals/run.py
   
   build:
