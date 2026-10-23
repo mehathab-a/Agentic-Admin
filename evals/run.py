@@ -25,7 +25,7 @@ THRESHOLD = 0.8
 
 def main():
     results = evaluate(
-        target=target,
+        target,
         data="agent-platform-tool-routing",
         evaluators = [correct_routing],
         experiment_prefix="tool-routing",
