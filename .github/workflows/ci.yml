@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 permissions:
-  id_token: write
+  id-token: write
   contents: read
 
 env:
@@ -31,7 +31,7 @@ jobs:
       - run: uv sync --all-extras --dev
       - name: unit tests
         env:
-          DATABASE_URL: postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@db:5432/agent
+          DATABASE_URL: postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           LANGSMITH_TRACING: ${{ variables.LANGSMITH_TRACING }}
           LLM_PROVIDER: ${{ variables.LLM_PROVIDER }}
