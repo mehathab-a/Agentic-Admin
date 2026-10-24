@@ -54,7 +54,7 @@ The image is multi-stage, based on `python:3.11-slim`:
 
 ### Evals (`evals/`)
 
-LangSmith dataset `agent-platform-tool-routing` (created by `evals/datasets.py`) labels questions as `tool_required` or `no_tool`. `evals/run.py` is meant to run the graph against that dataset, score whether a tool was called, and exit non-zero if the pass rate is under 80%. The invoke call currently passes a set (`{"user", question}`) where the graph expects a user message, so that runner does not execute yet.
+LangSmith dataset `agent-platform-tool-routing` (created by `evals/datasets.py`) labels questions as `tool_required` or `no_tool`. `evals/run.py` runs the graph against that dataset with a fresh `thread_id` per example, scores whether a tool was called, and exits non-zero if the pass rate is under 80%.
 
 ### CI (`.github/workflows/ci.yml`)
 
@@ -63,7 +63,7 @@ The `ci` workflow runs on pushes and pull requests to `main`. Jobs run in order:
 | Job | What it does |
 | --- | --- |
 | `test` | Postgres 16 service container, `uv sync --all-extras --dev`, then `uv run pytest -q`. |
-| `evals` | Same install, then `uv run python evals/run.py`. |
+| `evals` | Same install, then `uv run python -m evals.datasets && uv run python -m evals.run`. |
 | `build` | Assumes an AWS role with OIDC, logs in to ECR in `us-east-1`, and pushes `agentic-admin` tagged with the commit SHA and `latest`. |
 
 Permissions are `contents: read` and `id-token: write` (for the role assumption).
@@ -72,7 +72,7 @@ Secrets: `POSTGRES_PASSWORD`, `POSTGRES_DB`, `OPENAI_API_KEY`, `LANGSMITH_API_KE
 
 Repository variables: `LANGSMITH_TRACING`, `LANGSMITH_PROJECT`, `LLM_PROVIDER`, `OPENAI_MODEL`, `OPENAI_API_VERSION`.
 
-The workflow file does not parse yet. On the ECR login step, `id: ecr` is indented under `uses`, and on the push step `env` is indented under `name`. GitHub will reject the file until those keys sit beside `uses` and `name`. The Postgres service option is `--health_retries`; Actions expects `--health-retries`. The test job’s `DATABASE_URL` host is `db`, while the service container is named `postgres`.
+The test job's service container runs on the runner host, so `DATABASE_URL` uses `localhost:5432`, not the service key name `postgres`.
 
 ### Package stub
 

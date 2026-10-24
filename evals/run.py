@@ -1,4 +1,5 @@
 import sys
+import uuid
 from langsmith import Client, evaluate
 from langgraph.checkpoint.memory import InMemorySaver
 from app.graph import build
@@ -7,8 +8,8 @@ graph = build(InMemorySaver())
 
 def target(inputs: dict) -> dict:
     out = graph.invoke(
-        {"messages": [{"user", inputs["question"]}]},
-        config={"configurable": {"thread_id": inputs["thread_id"]},
+        {"messages": [("user", inputs["question"])]},
+        config={"configurable": {"thread_id": str(uuid.uuid4())},
                 "recursion_limit": 10},
         )
     
