@@ -65,15 +65,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: show OIDC subject
-        run: |
-          echo "repo: $GITHUB_REPOSITORY"
-          echo "ref: $GITHUB_REF"
-          echo "expected sub: repo:$GITHUB_REPOSITORY:ref:$GITHUB_REF"
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::331715289787:role/github-actions-agentic-admin
-          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
           role-skip-session-tagging: true
       - uses: aws-actions/amazon-ecr-login@v2
         id: ecr
