@@ -25,12 +25,12 @@ output "db_secret_arn" {
 
 output "openai_secret_arn" {
   description = "Secrets Manager ARN for the OpenAI API key (value filled in by hand)."
-  value       = data.aws_secretsmanager_secret.openai.arn
+  value       = aws_secretsmanager_secret.openai.arn
 }
 
 output "langsmith_secret_arn" {
   description = "Secrets Manager ARN for the LangSmith API key (value filled in by hand)."
-  value       = data.aws_secretsmanager_secret.langsmith.arn
+  value       = aws_secretsmanager_secret.langsmith.arn
 }
 
 output "alb_url" {

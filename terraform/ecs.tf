@@ -60,14 +60,6 @@ resource "aws_security_group" "app" {
   }
 }
 
-data "aws_secretsmanager_secret" "openai" {
-  name = var.openai_secret_name
-}
-
-data "aws_secretsmanager_secret" "langsmith" {
-  name = var.langsmith_secret_name
-}
-
 # Standalone rule so we don't create a cycle between the RDS SG and the app
 # SG. Lives here (not in security.tf) because it needs app SG to exist first.
 resource "aws_security_group_rule" "rds_from_app" {
@@ -127,8 +119,8 @@ resource "aws_iam_role_policy" "execution_secrets" {
       Action = ["secretsmanager:GetSecretValue"]
       Resource = [
         aws_secretsmanager_secret.db_url.arn,
-        data.aws_secretsmanager_secret.openai.arn,
-        data.aws_secretsmanager_secret.langsmith.arn,
+        aws_secretsmanager_secret.openai.arn,
+        aws_secretsmanager_secret.langsmith.arn,
       ]
     }]
   })
@@ -186,10 +178,11 @@ resource "aws_ecs_task_definition" "app" {
 
     # Plain env vars (safe to put in state — nothing secret here).
     environment = [
-      { name = "LLM_PROVIDER", value = "openai" },
-      { name = "OPENAI_MODEL", value = "gpt-5-mini" },
-      { name = "LANGSMITH_TRACING", value = "true" },
-      { name = "LANGSMITH_PROJECT", value = "${var.project}-prod" },
+      { name = "LLM_PROVIDER", value = var.llm_provider },
+      { name = "OPENAI_MODEL", value = var.openai_model },
+      { name = "OPENAI_API_VERSION", value = var.openai_api_version },
+      { name = "LANGSMITH_TRACING", value = var.langsmith_tracing },
+      { name = "LANGSMITH_PROJECT", value = var.langsmith_project },
       { name = "AWS_REGION", value = var.region },
     ]
 
@@ -198,8 +191,8 @@ resource "aws_ecs_task_definition" "app" {
     # DATABASE_URL=postgres://... in its env.
     secrets = [
       { name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.db_url.arn },
-      { name = "OPENAI_API_KEY", valueFrom = data.aws_secretsmanager_secret.openai.arn },
-      { name = "LANGSMITH_API_KEY", valueFrom = data.aws_secretsmanager_secret.langsmith.arn },
+      { name = "OPENAI_API_KEY", valueFrom = aws_secretsmanager_secret.openai.arn },
+      { name = "LANGSMITH_API_KEY", valueFrom = aws_secretsmanager_secret.langsmith.arn },
     ]
 
     # stdout/stderr -> CloudWatch. Streams are prefixed with the project

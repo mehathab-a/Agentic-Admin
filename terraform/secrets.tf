@@ -35,13 +35,13 @@ resource "aws_secretsmanager_secret_version" "db_url" {
 # new tasks pick up the value:
 #   aws ecs update-service --cluster <cluster> --service <svc> \
 #     --force-new-deployment --profile agent
-# data "aws_secretsmanager_secret" "openai" {
-#   name = "${var.project}/openai-api-key"
-#   description = "OpenAI API key used by the ${var.project} app."
-# }
+resource "aws_secretsmanager_secret" "openai" {
+  name = "${var.project}/openai_api_key"
+  description = "OpenAI API key used by the ${var.project} app."
+}
 
-# # Same story as OpenAI — created empty, you populate it manually.
-# data "aws_secretsmanager_secret" "langsmith" {
-#   name = "${var.project}/langsmith-api-key"
-#   description = "LangSmith API key used by the ${var.project} app."
-# }
+# Same story as OpenAI — created empty, you populate it manually.
+resource "aws_secretsmanager_secret" "langsmith" {
+  name = "${var.project}/langsmith_api_key"
+  description = "LangSmith API key used by the ${var.project} app."
+}
