@@ -31,7 +31,7 @@ structlog writes JSON lines with merged context vars, log level, and an ISO time
 
 ### Persistence
 
-Thread state is stored in LangGraph’s Postgres checkpointer, keyed by `thread_id`.
+Thread state is stored in LangGraph’s Postgres checkpointer, keyed by `thread_id`. Locally that database is the Compose Postgres service. The AWS database is the RDS instance in `terraform/`.
 
 ### Docker
 
@@ -58,13 +58,13 @@ LangSmith dataset `agent-platform-tool-routing` (created by `evals/datasets.py`)
 
 ### CI (`.github/workflows/ci.yml`)
 
-The `ci` workflow runs on pushes and pull requests to `main`. Jobs run in order: tests, then the eval gate, then an image push. The build job runs only when the ref is `refs/heads/main`.
+The `ci` workflow runs on pushes to `main` and on every pull request. Jobs run in order: tests, then the eval gate, then an image push. The build job runs only when the ref is `refs/heads/main`.
 
 | Job | What it does |
 | --- | --- |
-| `test` | Postgres 16 service container, `uv sync --all-extras --dev`, then `uv run pytest -q`. |
+| `test` | Postgres 16 service container, `uv sync --all-extras --dev` via `astral-sh/setup-uv@v10.3.2`, then `uv run pytest -q`. |
 | `evals` | Same install, then `uv run python -m evals.datasets && uv run python -m evals.run`. |
-| `build` | Assumes an AWS role with OIDC, logs in to ECR in `us-east-1`, and pushes `agentic-admin` tagged with the commit SHA and `latest`. |
+| `build` | Assumes an AWS role with OIDC (`role-skip-session-tagging: true`), logs in to ECR in `us-east-1`, and pushes `agentic-admin` tagged with the commit SHA and `latest`. |
 
 Permissions are `contents: read` and `id-token: write` (for the role assumption).
 
@@ -72,7 +72,21 @@ Secrets: `POSTGRES_PASSWORD`, `POSTGRES_DB`, `OPENAI_API_KEY`, `LANGSMITH_API_KE
 
 Repository variables: `LANGSMITH_TRACING`, `LANGSMITH_PROJECT`, `LLM_PROVIDER`, `OPENAI_MODEL`, `OPENAI_API_VERSION`.
 
-The test job's service container runs on the runner host, so `DATABASE_URL` uses `localhost:5432`, not the service key name `postgres`.
+The test job's service container is published on the runner, so `DATABASE_URL` uses `localhost:5432` and the `POSTGRES_DB` secret as the database name.
+
+### AWS (`terraform/`)
+
+Terraform `>= 1.6` with the AWS provider `~> 5.0` and the random provider `~> 3.0`. The AWS provider uses region `us-east-1` (overridable) and the `agent` CLI profile. Every resource gets tags `project=agentic-admin` and `managed=terraform`.
+
+| File | Resources |
+| --- | --- |
+| `network.tf` | VPC `10.0.0.0/16` named `agentic-admin`, an internet gateway, two public subnets (`10.0.0.0/24` and `10.0.1.0/24`) in the first two availability zones, and a public route table. |
+| `security.tf` | Security group `rds-` allowing TCP 5432 from `0.0.0.0/0`, with all egress. A `my_ip` variable is declared and not referenced. |
+| `rds.tf` | Postgres 16 on `db.t4g.micro`, 20 GB, identifier `agentic-admin`, publicly accessible, no final snapshot. Database name defaults to `agent`, username to `agent_app`. The password is a generated 24-character string with no special characters. |
+| `secrets.tf` | Secrets Manager secret `agentic-admin/db-url-` holding `postgresql://...@<rds-host>:5432/<db>`, and an empty secret `agentic-admin/openai-` (no secret version yet). |
+| `outputs.tf` | RDS address, both secret ARNs, VPC id, and the public subnet ids. |
+
+State, the provider lock, and `.terraform/` are gitignored. The state file in the working tree currently lists no resources.
 
 ### Package stub
 
@@ -91,6 +105,7 @@ docker-compose.yml    Postgres 16 and the API
 pyproject.toml        dependencies (uv)
 uv.lock               locked dependency set used by the image
 .github/workflows/ci.yml   test, eval gate, ECR push
+terraform/            VPC, public subnets, RDS Postgres 16, Secrets Manager
 ```
 
 ## Run
