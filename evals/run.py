@@ -1,17 +1,20 @@
+import asyncio
 import sys
-from langsmith import Client, evaluate
+import uuid
+from langsmith import Client
+from langsmith.evaluation import aevaluate
 from langgraph.checkpoint.memory import InMemorySaver
 from app.graph import build
 
 graph = build(InMemorySaver())
 
-def target(inputs: dict) -> dict:
-    out = graph.invoke(
-        {"messages": [{"user", inputs["question"]}]},
-        config={"configurable": {"thread_id": inputs["thread_id"]},
+async def target(inputs: dict) -> dict:
+    out = await graph.ainvoke(
+        {"messages": [("user", inputs["question"])]},
+        config={"configurable": {"thread_id": str(uuid.uuid4())},
                 "recursion_limit": 10},
         )
-    
+
     used_tool = any(
         getattr(m, "tool_calls", None) for m in out['messages']
     )
@@ -23,17 +26,17 @@ def correct_routing(outputs: dict, reference_outputs: dict) -> bool:
 
 THRESHOLD = 0.8
 
-def main():
-    results = evaluate(
-        target=target,
+async def main():
+    results = await aevaluate(
+        target,
         data="agent-platform-tool-routing",
         evaluators = [correct_routing],
         experiment_prefix="tool-routing",
     )
-    scores = [r["evaluation_results"]["results"][0].score for r in results._results]
+    scores = [r["evaluation_results"]["results"][0].score async for r in results]
     rate = sum(bool(s) for s in scores) / len(scores)
     print(f"Pass rate: {rate:.2%}  (threshold: {THRESHOLD})")
     sys.exit(0 if rate >= THRESHOLD else 1)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

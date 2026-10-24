@@ -12,9 +12,13 @@ def main():
     c = Client()
     name = "agent-platform-tool-routing"
     if c.has_dataset(dataset_name=name):
-        print("Dataset already exists"); return
+        ds = c.read_dataset(dataset_name=name)
+        if ds.example_count:
+            print("Dataset already exists"); return
+        print("Dataset exists but is empty; adding examples")
+    else:
+        ds = c.create_dataset(name)
 
-    ds = c.create_dataset(name)
     c.create_examples(
         inputs=[{'question': q} for q, _ in EXAMPLES],
         outputs=[{"expected": e} for _, e in EXAMPLES],

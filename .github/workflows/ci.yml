@@ -3,7 +3,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 permissions:
   id-token: write
@@ -58,7 +57,7 @@ jobs:
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
           OPENAI_API_VERSION: ${{ vars.OPENAI_API_VERSION }}
-        run: uv run python -m evals.run
+        run: uv run python -m evals.datasets && uv run python -m evals.run
   
   build:
     needs: evals
