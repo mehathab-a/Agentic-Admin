@@ -80,7 +80,19 @@ jobs:
           docker push $REG/$ECR_REPO:${{ github.sha }}
           docker push $REG/$ECR_REPO:latest
 
-
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-skip-session-tagging: true
+      - name: force new deployment
+        run: |
+          aws ecs update-service --cluster agentic-admin-cluster --service agentic-admin-app-svc --force-new-deployment --region ${{ env.AWS_REGION }}
         
 
 
