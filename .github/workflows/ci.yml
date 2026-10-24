@@ -90,6 +90,19 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           role-skip-session-tagging: true
+      - name: apply environment variables
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+        run: |
+          put() {
+            id=$(aws secretsmanager list-secrets \
+              --filters Key=name,Values="$1" \
+              --query 'SecretList[0].ARN' --output text)
+            aws secretsmanager put-secret-value --secret-id "$id" --secret-string "$2"
+          }
+          put agentic-admin/openai_api_key    "$OPENAI_API_KEY"
+          put agentic-admin/langsmith_api_key "$LANGSMITH_API_KEY"
       - name: force new deployment
         run: |
           aws ecs update-service --cluster agentic-admin-cluster --service agentic-admin-app-svc --force-new-deployment --region ${{ env.AWS_REGION }}

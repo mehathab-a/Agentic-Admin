@@ -59,3 +59,33 @@ variable "langsmith_secret_name" {
   type    = string
   default = "agentic-admin/langsmith_api_key"
 }
+
+variable "llm_provider" {
+  description = "LLM provider to use."
+  type    = string
+  default = "openai"
+}
+
+variable "openai_model" {
+  description = "OpenAI model to use."
+  type    = string
+  default = "gpt-5-mini"
+}
+
+variable "openai_api_version" {
+  description = "OpenAI API version to use."
+  type    = string
+  default = "2024-06-01"
+}
+
+variable "langsmith_tracing" {
+  description = "LangSmith tracing to use."
+  type    = string
+  default = "true"
+}
+
+variable "langsmith_project" {
+  description = "LangSmith project to use."
+  type    = string
+  default = "agent-admin-prod"
+}
