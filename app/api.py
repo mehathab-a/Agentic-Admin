@@ -11,6 +11,10 @@ from app.logging import configure_logging
 configure_logging()
 log = structlog.get_logger()
 
+log.info("DATABASE_URL", DATABASE_URL=os.getenv("DATABASE_URL"))
+log.info("OPENAI_API_KEY", OPENAI_API_KEY=os.getenv("OPENAI_API_KEY"))
+log.info("LANGSMITH_API_KEY", LANGSMITH_API_KEY=os.getenv("LANGSMITH_API_KEY"))
+
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     async with AsyncPostgresSaver.from_conn_string(os.getenv("DATABASE_URL")) as cp:
